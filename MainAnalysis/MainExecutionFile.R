@@ -120,8 +120,7 @@ source("Functions/CompareSNPsExecution.R")
 
 ## running function that prepares a results object to save
 source("Functions/ResultsStorage.R")
-source("Functions/CohensD.R")
 
 ## save results
-save(results,summary_res,MR_IVW_Q,MR_egger_Q,tranform_flag,results_snps,CohensD, file="MR_results.RData")
+save(results,summary_res,MR_IVW_Q,MR_egger_Q,tranform_flag,results_snps, file="MR_results.RData")
 
