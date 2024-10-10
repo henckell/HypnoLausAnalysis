@@ -18,16 +18,16 @@ library(ggplot2)          # plotting
 # set working directory
 setwd("...")
 
-# load the data set
-load(file = "data_UKB_CL_v2020_coffcups.RData")
+# load the HypnoLaus data set
+load(file = "data.RData")
 
 # add caffeine and other information
-coffad <- read.xlsx(xlsxFile = "additional_data.xlsx")
+coffad <- read.xlsx(xlsxFile = "data.xlsx")
 which_add <- c("F1pt", colnames(coffad)[!colnames(coffad) %in% colnames(data_colaus)])
 data_colaus <- merge(data_colaus, coffad[,which_add], by = "F1pt")
 
 # add socio-demographic-economic and health related data
-socioeco_add <- read_dta("data/Data_20231106_additional_matchingfrontier/Caffeine_genetics_data2.dta")
+socioeco_add <- read_dta("additional_data.dta")
 which_add <- c("F1pt", colnames(socioeco_add)[!colnames(socioeco_add) %in% colnames(data_colaus)])
 data_colaus <- merge(data_colaus, socioeco_add[,which_add], by = "F1pt")
 
@@ -226,6 +226,7 @@ for(outcome in 1:length(outcoms)){
                                         cohend = dout$estimate,
                                         ci_low = tout$conf.int[1],
                                         ci_high = tout$conf.int[2],
+                                        SE = tout$stderr, 
                                         panel = if(outcoms[outcome] %in% c("F1psqi", "F1epworth", "F1horne")){
                                           "subjective"
                                         } else {"objective"},
@@ -235,4 +236,10 @@ for(outcome in 1:length(outcoms)){
 # bind the rows of the for loops together
 matchings <- bind_rows(matchingsave)
 rownames(matchings) <- NULL
+
+
+
+
+# save the file
+save(matchings, file = "data/matching_results.RData")
 

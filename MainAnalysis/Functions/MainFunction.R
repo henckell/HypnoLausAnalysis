@@ -215,11 +215,20 @@ main <- function(data,data2,BetaXG,seBetaXG,
   CI[8,1] <- confint(fit_yx)[2,1]
   CI[8,2] <- confint(fit_yx)[2,2]
   
-  return(list(beta=beta, pvalue=pvalue, CI=CI,fit1=fit1,fit2=fit2,fit3=fit3,fitRS=fitRS,
+  se <- c()
+  se[1] <- fit1$StdError
+  se[2] <- fit2$StdError
+  se[3] <- fit3$StdError
+  se[4] <- fitRS$StdError
+  se[5] <- IVWObject$StdError
+  se[6] <- WeightedMedianObject$StdError
+  se[7] <- EggerObject$StdError.Est ## make sure this is not intercept
+  se[8] <- summary(fit_yx)$coefficients[2,2]
+  
+  return(list(beta=beta, pvalue=pvalue, CI=CI,se=se,fit1=fit1,fit2=fit2,fit3=fit3,fitRS=fitRS,
               IVW=IVWObject,
               Median=WeightedMedianObject,
               MRegger=EggerObject,sample_y=sample_y))
-  # TSHT=TSHTObject))
 }
 
 

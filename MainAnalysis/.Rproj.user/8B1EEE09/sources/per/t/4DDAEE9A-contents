@@ -7,15 +7,14 @@ for(i in 1:10){
   summary_res[[rownames(snips_colaus_clean)[81+i]]] <- results[[i]]$beta
   summary_res[[rownames(snips_colaus_clean)[81+i]]] <- cbind(summary_res[[i]],results[[i]]$CI)
   summary_res[[rownames(snips_colaus_clean)[81+i]]] <- cbind(summary_res[[i]],results[[i]]$pvalue)
-  summary_res[[rownames(snips_colaus_clean)[81+i]]] <- cbind(summary_res[[i]],results[[i]]$se)
   
   summary_res[[rownames(snips_colaus_clean)[81+i]]] <-  summary_res[[i]][4:8,]
   
-  colnames(summary_res[[rownames(snips_colaus_clean)[81+i]]])<- c("beta","CI_lower","CI_higher","pvalue","se")
+  colnames(summary_res[[rownames(snips_colaus_clean)[81+i]]])<- c("beta","CI_lower","CI_higher","pvalue")
   rownames(summary_res[[rownames(snips_colaus_clean)[81+i]]])<- c("MR_RS","MR_IVW","MR_median","MR_egger","obervational")
   
-  MR_IVW_Q[[rownames(snips_colaus_clean)[81+i]]] <- results[[i]][[9]]$Heter.Stat[2]
-  MR_egger_Q[[rownames(snips_colaus_clean)[81+i]]] <- results[[i]][[11]]$Heter.Stat[2]
+  MR_IVW_Q[[rownames(snips_colaus_clean)[81+i]]] <- results[[i]][[8]]$Heter.Stat[2]
+  MR_egger_Q[[rownames(snips_colaus_clean)[81+i]]] <- results[[i]][[10]]$Heter.Stat[2]
   
   tranform_flag[[rownames(snips_colaus_clean)[81+i]]] <- "none" 
 }
