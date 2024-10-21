@@ -109,7 +109,12 @@ dat$var_name <- factor(dat$var_name, levels = c("Total sleep time [min]", "Log s
                           "Log # awakenings", "REM sleep [%]",
                           "NREM Delta [%]", "Logit NREM Sigma [%]", 
                           "Logit sleep efficiency [%]", 
-                           "Log PSQI global score", "Log ESS score", "MEQ score"))
+                           "Log PSQI global score", "Log ESS score", "MEQ score"),
+                       labels = c("Total sleep time [min]", "Sleep latency [min]", 
+                                  "# Awakenings", "REM sleep [%]",
+                                  "NREM delta power [%]", "NREM sigma power [%]", 
+                                  "Sleep efficiency [%]", 
+                                  "PSQI global score", "ESS score", "MEQ score"))
 
 
 
@@ -178,7 +183,7 @@ g <- g1 + g2 + plot_layout(ncol = 2, guides = "collect", widths = c(2.2,1))&
   guides(color = guide_legend(nrow = 1, byrow = TRUE))
 
 # save plot
-ggsave(plot = g, filename = "plots/tree_paper.png", 
+ggsave(plot = g, filename = "tree_paper.png", 
        height = 9, width = 12, dpi = 900)
 
 
@@ -237,9 +242,14 @@ dat2 <- dat2[dat2$method != "Risk Score",]
 # set levels
 dat2$method <- factor(dat2$method, levels = c("MR Egger", "IVW", "Median", "Matching", "Observational"))
 
+dat2$cohend[dat2$method %in% c("IVW", "Median", "MR Egger", "Observational")] <- NA
+
+# merge SE
+dat2$se[dat2$method %in% "Matching"] <- dat2$SE[dat2$method %in% "Matching"]
+dat2$SE <- NULL
 
 # save the full results
-write.xlsx(x = dat2, file = "plots/results_paper.xlsx")
+write.xlsx(x = dat2, file = "results_paper.xlsx")
 
 
 
@@ -257,8 +267,14 @@ dat2$var_name <- factor(dat2$var_name, levels = c("Total sleep time [min]", "Log
                                                 "Log # awakenings", "REM sleep [%]",
                                                 "NREM Delta [%]", "Logit NREM Sigma [%]", 
                                                 "Logit sleep efficiency [%]", 
-                                                "Log PSQI global score", "Log ESS score", "MEQ score"))
-g1 <- ggplot(dat2[dat2$panel == "objective"& !(dat2$var_name  %in% "Logit sleep efficiency [%]"),], 
+                                                "Log PSQI global score", "Log ESS score", "MEQ score"),
+                        labels = c("Total sleep time [min]", "Sleep latency [min]", 
+                                   "# Awakenings", "REM sleep [%]",
+                                   "NREM delta power [%]", "NREM sigma power [%]", 
+                                   "Sleep efficiency [%]", 
+                                   "PSQI global score", "ESS score", "MEQ score"))
+levels(dat2$method)[1] <- "MR-Egger"
+g1 <- ggplot(dat2[dat2$panel == "objective"& !(dat2$var_name  %in% "Sleep efficiency [%]"),], 
              aes(y = estimate,
                  x = method))  +
   geom_hline(yintercept = 0, col = "red", linetype = "dashed")+
@@ -307,108 +323,5 @@ g <- g1 + g2 + plot_layout(ncol = 2, guides = "collect", widths = c(2.15,1))&
   guides(color = guide_legend(nrow = 1, byrow = TRUE))
 
 # save plot
-ggsave(plot = g, filename = "plots/results_paper.png", 
+ggsave(plot = g, filename = "results_paper.png", 
        height = 9, width = 12, dpi = 900)
-
-
-#####
-# 3) create the cohen's d table
-dat5 <- pivot_wider(dat4[,c("cohend", "var_name", "method")], 
-            names_from = var_name, values_from = cohend)
-dat5$method <- factor(dat5$method, levels = c("Observational", "MR Egger", "IVW", "Median", "Matching"))
-dat5 <- dat5[order(dat5$method),c("method", naming)]
-
-
-# Create a workbook and add a worksheet
-wb <- createWorkbook()
-addWorksheet(wb, "Table")
-
-# Write the data to the worksheet
-writeData(wb, "Table", as.data.frame(t(c("",rep("objective", times = 7), rep("subjective", times =3)))), 
-          startCol = 1, startRow = 1, colNames = F)
-writeData(wb, "Table", dat5, startCol = 1, startRow = 2)
-
-# Define custom styles for background colors
-styles <- list(
-  createStyle(fontColour = "black", fgFill = "yellow",  halign = "center", valign = "center"),
-  createStyle(fontColour = "black", fgFill = "orange", halign = "center", valign = "center"),
-  createStyle(fontColour = "black", fgFill = "red", halign = "center", valign = "center"),
-  createStyle(fontColour = "white", fgFill = "darkred", halign = "center", valign = "center"),
-  createStyle(fontColour = "black", fgFill = "cornsilk", halign = "center", valign = "center")
-)
-
-# Define the Cohen's d categories for each column
-cohen_d_categories <- c("small", "medium", "large", "very large")
-
-# Add cell styles based on Cohen's d categories
-assignStyleIndex <- function(value) {
-  value <- abs(value)
-  if (value >= 0.2 && value < 0.5) {
-    return(1)  # Small
-  } else if (value >= 0.5 && value < 0.8) {
-    return(2)  # Medium
-  } else if (value >= 0.8 && value < 1) {
-    return(3)  # Large
-  } else if (value >=1){
-    return(4)  # Very Large
-  } else {
-    return(5) # no effect
-  }
-}
-# Apply styles to the cells
-for (col in 2:ncol(dat5)) {
-  for (row in 1:nrow(dat5)) {
-    value <- dat5[row, col]
-    style <- assignStyleIndex(value)
-    addStyle(wb, sheet = "Table", rows = row + 2, cols = col, style = styles[[style]])
-  }
-}
-
-# Define a function to change values
-zerotominus <- function(x){
-  wheretominus <- x < 0
-  outx <- rep(0, times = length(x))
-  outx[wheretominus] <- "-0"
-  return(outx)
-}
-changevalue <- function(x) {
-  sigi <- sign(x)
-  roundi <- round(x, 2)
-  roundi[] <- lapply(roundi[], \(x)as.character(x))
-  
-  roundi_mat <- as.matrix(roundi)
-  sigi_mat <- as.matrix(sigi)
-  
-  index <- roundi_mat == "0"
-  
-  # Replace corresponding values in sigi with the result of zerotominus()
-  roundi_mat[index] <- zerotominus(sigi_mat[index])
-  roundi <- as.data.frame(roundi_mat)
-  return(roundi)
-}
-
-# Update the values
-writeData(wb, sheet = "Table", x = changevalue(dat5[,2:11]), startCol = 2, startRow = 2)
-
-# Set column widths to autofit
-setColWidths(wb, sheet = "Table", cols = 1:ncol(dat5), widths = "auto")
-
-# center
-for(row in 1:7){
-  addStyle(wb, sheet = "Table", style = createStyle(halign = "center"), cols = 1:11, rows = row, stack = TRUE)
-}
-
-# lines
-addStyle(wb, sheet = "Table", style = createStyle(border = "bottom"), cols = 2:11, rows = 1, stack = TRUE)
-addStyle(wb, sheet = "Table", style = createStyle(border = "bottom"), cols = 1:11, rows = 2, stack = TRUE)
-addStyle(wb, sheet = "Table", style = createStyle(border = "right"), cols = 1, rows = 2:7, stack = TRUE)
-addStyle(wb, sheet = "Table", style = createStyle(border = "right"), cols = 8, rows = 1:7, stack = TRUE)
-
-# Merge cells in the first row for columns 2:8
-mergeCells(wb, sheet = "Table", cols = 2:8, rows = 1)
-
-# Merge cells in the first row for columns 9:11
-mergeCells(wb, sheet= "Table", cols = 9:11, rows = 1)
-
-# Save the workbook
-saveWorkbook(wb, "plots/cohend_table_paper.xlsx", overwrite = TRUE)

@@ -20,20 +20,18 @@ library("dplyr")
 library("openxlsx")     # read xlsx data
 library(patchwork)
 
-# set working directory
-setwd("...")
 
 # load CoLaus data: data_colaus, UKBiobank data: data_ukb and SNP information: snp_combined
-load(file = "data_UKB_CL_v2020_coffcups.RData")
+load(file = "data_UKB_Hypno.RData")
 
 # Take out participants that wish to be withdrawn from the UK Biobank 
 # They have to be omitted for the analysis
-withdraw <- read.csv(file = "data.csv",header = F)
+withdraw <- read.csv(file = "withdrawdata.csv",header = F)
 data_ukb <- data_ukb[!(data_ukb$eid %in% as.character(as.vector(t(withdraw)))),]
 
 
 # set working directory for storing plots and tables
-setwd("...")
+setwd("")
 
 # create caffeine variable, in accordance with UK Biobank
 data_colaus$F1cafuse <- factor(data_colaus$F1cafuse, 
@@ -102,10 +100,15 @@ colausl$panel[colausl$variable %in% c("PSQI global score",
                                       "ESS score",
                                       "MEQ score")] <- "subjective"
 colausl$variable <- factor(colausl$variable, levels = c("Total sleep time [min]", "Sleep latency [min]", 
-                                                "# Awakenings", "REM sleep [%]",
-                                                "NREM Delta [%]", "NREM Sigma [%]", 
-                                                "Sleep efficiency [%]", 
-                                                "PSQI global score", "ESS score", "MEQ score"))
+                                                        "# Awakenings", "REM sleep [%]",
+                                                        "NREM Delta [%]", "NREM Sigma [%]", 
+                                                        "Sleep efficiency [%]", 
+                                                        "PSQI global score", "ESS score", "MEQ score"),
+                           labels = c("Total sleep time [min]", "Sleep latency [min]", 
+                                      "# Awakenings", "REM sleep [%]",
+                                      "NREM delta power [%]", "NREM sigma power [%]", 
+                                      "Sleep efficiency [%]", 
+                                      "PSQI global score", "ESS score", "MEQ score"))
 # objective panel
 g1 <- ggplot(data = colausl[!is.na(colausl$F1cafuse) &
                              colausl$panel == "objective" &
@@ -114,12 +117,12 @@ g1 <- ggplot(data = colausl[!is.na(colausl$F1cafuse) &
   #geom_quasirandom(color = "black", alpha = 0.8) + 
   geom_boxplot(outlier.alpha = 0.3, width = 0.3) +
   ggtitle("Objective") +
-  xlab(NULL) +
+  xlab("Caffeinated beverages per day") +
   ylab(NULL) +
   stat_summary(fun.data = give.n, vjust = 1.3,
                geom = "text", colour = "blue", size = 6) +
   stat_summary(fun.data = mean.n, vjust=-0.5,
-              geom = "text", colour = "darkorange", size = 6) +
+              geom = "text", colour = "darkorange3", size = 6) +
   facet_wrap(~variable, ncol = 2, scales = "free_y") +
   scale_y_continuous(expand = c(0.2,0.2), breaks = pretty_breaks(n = 4))+
   theme(axis.text=element_text(size=12),
@@ -138,12 +141,12 @@ g2 <- ggplot(data = colausl[!is.na(colausl$F1cafuse) &
   #geom_quasirandom(color = "black", alpha = 0.8) + 
   geom_boxplot(outlier.alpha = 0.3, width = 0.3) +
   ggtitle("Subjective") +
-  xlab(NULL) +
+  xlab("Caffeinated beverages per day") +
   ylab(NULL) +
   stat_summary(fun.data = give.n, vjust = 1.3,
                geom = "text", colour = "blue", size = 6) +
   stat_summary(fun.data = mean.n, vjust=-0.5,
-               geom = "text", colour = "darkorange", size = 6) +
+               geom = "text", colour = "darkorange3", size = 6) +
   facet_wrap(~variable, ncol = 1, scales = "free_y") +
   scale_y_continuous(expand = c(0.2,0.2), breaks = pretty_breaks(n = 4))+
   theme(axis.text=element_text(size=12),
@@ -154,7 +157,7 @@ g2 <- ggplot(data = colausl[!is.na(colausl$F1cafuse) &
         plot.title = element_text(size=18)) +
   theme_nice(basesize = 18)
 
-g <- g1 + g2 + plot_layout(ncol = 2, guides = "collect", widths = c(2.2,1))&
+g <- g1 + g2 + plot_layout(ncol = 2, guides = "collect", widths = c(2.2,1), axis_titles = "collect")&
   theme(legend.position='bottom')&
   guides(color = guide_legend(nrow = 1, byrow = TRUE))
 
@@ -183,7 +186,7 @@ dis <- ggplot(dtp, aes(x= coffeecups, fill = Intake)) + geom_bar()+
   scale_y_continuous(labels = comma)+
   scale_x_discrete(na.translate = FALSE) + 
   ylab("Count") + 
-  xlab("Caffeinated beverages (cups per day)") +
+  xlab("Caffeinated beverages per day") +
   theme(panel.background = element_blank(), 
         text = element_text(size=20),
         legend.position = "bottom")
@@ -461,4 +464,3 @@ colnames(demou)[colnames(demou) == "difference"] <- "high - moderate"
 # save tables
 write.xlsx(democ, "demographic_hypnolaus.xlsx")
 write.xlsx(demou, "demographic_ukb.xlsx")
-
