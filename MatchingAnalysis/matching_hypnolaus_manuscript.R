@@ -1,10 +1,12 @@
 ################################################################################
 # Author: Benjamin Stucky
-# Year:   2024
+# Year:   2023
 # Aim:    Calculate the MatchingFrontier Algorithm in the HypnoLaus data-set
 # Input:  HypnoLaus/CoLaus dataset and additional information
 # Output: matching p-value, confidence interval, cohen's d
 ################################################################################
+
+
 
 # Libraries
 library(tidyverse)        # easy calculations
@@ -13,21 +15,23 @@ library(MatchingFrontier) # MatchingFrontier Algorithm, install via remotes::ins
 library(openxlsx)         # read xlsx data
 library(haven)            # read dta data
 library(effsize)          # cohen d function
+# library(coin)
 library(ggplot2)          # plotting
+
 
 # set working directory
 setwd("...")
 
 # load the HypnoLaus data set
-load(file = "data.RData")
+load(file = "data_UKB_CL_v2020_coffcups.RData")
 
 # add caffeine and other information
-coffad <- read.xlsx(xlsxFile = "data.xlsx")
+coffad <- read.xlsx(xlsxFile = "additionaldata.xlsx")
 which_add <- c("F1pt", colnames(coffad)[!colnames(coffad) %in% colnames(data_colaus)])
 data_colaus <- merge(data_colaus, coffad[,which_add], by = "F1pt")
 
 # add socio-demographic-economic and health related data
-socioeco_add <- read_dta("additional_data.dta")
+socioeco_add <- read_dta("additionaldata2.dta")
 which_add <- c("F1pt", colnames(socioeco_add)[!colnames(socioeco_add) %in% colnames(data_colaus)])
 data_colaus <- merge(data_colaus, socioeco_add[,which_add], by = "F1pt")
 
@@ -46,30 +50,9 @@ matching_vars <- c("F0sex", # gender
                    
                    # martial status
                    "F1mrtsts",
-                   "F1dmst",
-                   "F1nochd",
-                   "F1agechd1",
-                   "F1agechd2",
-                   "F1sclhlp",
-                   
+                  
                    # JOB STATUS
-                   "F1job_curr1",
-                   "F1job_curr4b",
                    "F1job_curr8",
-                   "F1job_curr8a",
-                   
-                   # personal history (cardiovascular illnesses, strokes,...)
-                   "F1cmp",
-                   "F1hdv",
-                   "F1chf",
-                   "F1artm",
-                   "F1cad",
-                   "F1angn",
-                   "F1miac",
-                   "F1strk",
-                   "F1vslg",
-                   "F1ccth",
-                   "F1cabg",
                    
                    # health status
                    "F1Quest1",
@@ -77,31 +60,8 @@ matching_vars <- c("F0sex", # gender
                    # physical activity weekly excluding sleep
                    "F1etsemns",
                    
-                   # mental health
-                   "F1SC",
-                   "F1DA",
-                   "F1IR",
-                   "F1PA",
-                   "F1CESD",
-                   
-                   # BMI, waist, hip
-                   "F1waist",
-                   "F1hip",
-                   "f1bmi", # BMI
-                   
-                   # resting blood pressure, HR
-                   "F1SBP",
-                   "F1DBP",
-                   "F1HRTRTE",
-                   
-                   # cholesterol
-                   "F1chol",
-                   "F1hdlch",
-                   "F1ldlch",
-                   "F1trig",
-                   
-                   # inflammation
-                   "F1crpu"
+                   # BMI
+                   "f1bmi" # BMI
                    )
 
 # create caffeine intake variable
@@ -181,16 +141,23 @@ for(outcome in 1:length(outcoms)){
   basef <- as.formula(paste(outcoms[outcome], "~", "caf"))
   mahal.estimates <- estimateEffects(mahal.frontier, 
                                      base.form = basef,
-                                     verbose = FALSE)
+                                     verbose = FALSE, n.estimated = 1000)
   
   
   # save "check" plots
   p1 <- plot(mahal.frontier) +
     ggtitle(paste(naming[outcome], ": frontier plot"))
-  p2 <- plot(mahal.estimates, band = "confidence") +
+  p2 <- plot(mahal.estimates, band = "none") +
     geom_hline(yintercept = mahal.estimates$un$coef, linetype = "dashed")+
     geom_hline(yintercept = 0)+
     ggtitle(paste(naming[outcome], ": effects plot"))
+  if(outcoms[outcome] %in% "tst"){
+    tstp <- p2
+  } else if(outcoms[outcome] %in% "EEG_deltaR_nrem"){
+    deltap <- p2
+  } else {
+    
+  }
   ggsave(plot = p1,
          filename = paste0("plots/matchingfrontier_frontier_new_", outcoms[outcome], ".jpg"))
   ggsave(plot = p2,
@@ -239,7 +206,22 @@ rownames(matchings) <- NULL
 
 
 
+ggsave(tstp + deltap +plot_layout(ncol = 2, axes = "collect"), width = 8, height = 5,
+       filename = paste0("plots/matchingfrontier_frontier_supplement.jpg"))
+
 
 # save the file
 save(matchings, file = "data/matching_results.RData")
+
+# round for output
+matchingsave_round <- matchings
+matchingsave_round[] <- lapply(matchings[], \(x){
+  if("numeric" %in% class(x)){
+    round(x,3)
+  } else {
+    x
+  }
+  })
+matchingsave_round
+write.xlsx(matchingsave_round, file = "data/matching_results.xlsx")
 
